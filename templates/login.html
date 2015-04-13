@@ -1,24 +1,10 @@
 {% extends "base.html" %}
-{% block css %}
+{% block css -%}
 <style type="text/css">
-#fs_login{
-    background:#F8F8F8;
-    padding:20px;
-    -moz-border-radius: 8px;
-    -webkit-border-radius: 8px;
-    border-radius: 8px;
-    border-width: 1px;
-    border-style: solid;
-    border-color: #DDDDDD;
-    margin:15px 0;
-}
 #tips{
     color:red;
     font-size:0.8em;
     text-align:center;
-}
-#login{
-    margin:0px auto;
 }
 #note{
     color:grey;
@@ -26,34 +12,31 @@
     text-align:center;
 }
 </style>
-{% endblock %}
-{% block bodytag %}
-<body onload="document.getElementById('username').focus();">
-{% endblock %}
-{% block menubar %}
-{% endblock %}
-{% block content %}
+{% endblock -%}
+{% block bodytag -%}
+<body onload="document.getElementById('u').focus();">
+{% endblock -%}
+{% block menubar -%}
+{% endblock -%}
+{% block content -%}
     <fieldset id="fs_login">
-    {% if tips %}
+    {% if tips -%}
     <p id="tips">{{tips}}</p>
-    {% endif %}
-    <form action="/login" method="POST">
-    <table id="login">
-        <tr>
-            <td style="text-align:right;">用户名：</td>
-            <td><input type="text" name="u" id="username" {% if username %}value="{{username}}"{% endif %} /></td>
-        </tr>
-        <tr>
-            <td style="text-align:right;">密码：</td>
-            <td><input type="password" name="p" id="password" /></td>
-        </tr>
-        <tr>
-            <td></td>
-            <td><input type="submit" value="确认登陆" onclick="javascript:return check();window.close();" target="_parent" /></td>
-        </tr>
-    </table>
+    {% endif -%}
+    <form action="/login" method="POST" class="pure-form pure-form-aligned">
+        <div class="pure-control-group">
+            <label for="u">{{_("Username")}}</label>
+            <input id="u" name="u" type="text" placeholder="Username" 
+            {% if username %}value="{{username}}"{% endif %} />
+        </div>
+        <div class="pure-control-group">
+            <label for="p">{{_("Password")}}</label>
+            <input id="p" name="p" type="password" placeholder="Password" />
+        </div>
+        <div class="pure-controls">
+            <button type="submit" class="pure-button pure-button-primary">{{_("Login")}}</button>
+        </div>
     </form>
     </fieldset>
-    <pre><p> </p></pre>
-    <p id="note">本站不开放注册，需要管理员先添加账号然后才能使用对应账号登录使用相应服务。</p>
-{% endblock %}
+    <p id="note">{{_("The website dont allow register, you can ask owner for a account.")}}</p>
+{% endblock -%}

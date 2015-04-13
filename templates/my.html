@@ -1,77 +1,103 @@
 {% extends "base.html" %}
-{% block content %}
-<fieldset id="mybooks">
-    <legend>已订阅</legend>
-    {% set hasitem = [] %}
-    {% for book in books %}
-    {% if nickname in book.users %}
-    <div class="book">
-        <div class="titleRow">{{book.title}}</div>
-        <div class="cornerControls">
-            <a href="/unsubscribe/{{book.key().id()}}" class="actionButton">退订</a>
-        </div>
-        <div class="summaryRow">{{book.description}}</div>
-    </div>
-    {% do hasitem.append(1) %}
-    {% endif %}
-    {% endfor %}
-    {% if not hasitem %}
-    <p style="font-size:0.8em;color:grey;">暂时没有已订阅的书籍</p>
-    {% endif %}
-</fieldset>
-{% if ownfeeds %}
-<p></p>
+{% block content -%}
+{% if myfeeds -%}
 <fieldset id="ownfeeds">
-    <legend>自定义RSS</legend>
-    {% for feed in ownfeeds %}
+    <legend>{{_("Custom Rss")}}</legend>
+    {% for feed in myfeeds -%}
     <div class="book">
-        <div class="titleRow">{{feed.title}} {% if feed.isfulltext %}<img alt="全文RSS" src="static/fulltext.gif" border="0" />{% endif %}</div>
+        <div class="titleRow">{{feed.title}} {% if feed.isfulltext %}
+            <img alt="{{_("Fulltext")}}" src="static/fulltext.gif" border="0" />{% endif %}
+        </div>
         <div class="cornerControls">
-            <a href="/delfeed/{{feed.key().id()}}" class="actionButton">删除</a>
+            <a href="/delfeed/{{feed.key().id()}}" class="actionButton">{{_("Delete")}}</a>
         </div>
         <div class="summaryRow">
-            <a href="{{feed.url}}" target="_blank" style="text-decoration:none;color:grey;">
-            {{feed.url}}</a>
+            <a href="{{feed.url}}" target="_blank" style="text-decoration:none;color:grey;" 
+                {%if feed.url|length>80%}title="{{feed.url}}"{%endif%}>
+            {%if feed.url|length>80%}{{feed.url[:80]}}...{%else%}{{feed.url}}{%endif%}</a>
         </div>
     </div>
-    {% endfor %}
-    <form action="" method="POST">
-    <div class="book">
+    {% endfor -%}
+    <form class="pure-form" action="" method="POST">
+    <div class="book" style="border-bottom:0;">
         <div class="titleRow">
-            <table><tr>
-            <td><input type="text" name="t" placeholder="标题" /></td>
-            <td><input type="checkbox" name="fulltext"/></td><td><img alt="全文RSS" src="static/fulltext.gif" border="0" /></td>
-            </tr></table>
-        </div>
-        <div class="cornerControls">
-            <input type="submit" value="添加" class="actionButton" />
+            <input type="text" name="t" placeholder={{_("Title")}} style="width:250px;" />
+            <input type="checkbox" name="fulltext" id="fulltext" />
+            <img alt="{{_("Fulltext")}}" src="static/fulltext.gif" border="0" onclick="toggleFulltext();" />
         </div>
         <div class="summaryRow">
-            <input type="text" name="url" style="width:100%;"  placeholder="URL" />
+            <input type="text" name="url" style="width:600px;margin-top:8px;" placeholder="URL" />
         </div>
+        <input type="submit" value="{{_("Add")}}" class="pure-button pure-button-primary" style="margin-top:8px;" />
         {% if tips %}<p style="color:red;font-size:0.7em;">{{tips}}</p>{% endif %}
     </div>
     </form>
 </fieldset>
-{% endif %}
-<p></p>
-<fieldset id="books">
-    <legend>未订阅</legend>
-    {% set hasitem2 = [] %}
-    {% for book in books %}
-    {% if nickname not in book.users %}
+{% endif -%}
+<fieldset id="mybooks" style="margin-top:10px;">
+    <legend>{{_("Subscribed")}}</legend>
+    {% for book in books -%}
+    {% if nickname in book.users -%}
     <div class="book">
-        <div class="titleRow">{{book.title}}</div>
-        <div class="cornerControls">
-            <a href="/subscribe/{{book.key().id()}}" class="actionButton">订阅</a>
+        <div class="titleRow">{{book.title}}
+        {% if book.separate -%}
+          <img alt="{{_("Separate")}}" src="static/separate.gif" border="0" />
+        {% endif -%}
         </div>
-        <div class="summaryRow">{{book.description}}</div>
+        <div class="cornerControls">
+          {% if book.needs_subscription -%}
+            <a href="/booklogininfo/{{book.key().id()}}" class="actionButton"
+            {% if not user.subscription_info(book.title) %}style="color:red;"{% endif %}
+            >{{_("Login Info")}}</a>
+          {% endif -%}
+            <a href="/unsubscribe/{{book.key().id()}}" class="actionButton">{{_("Unsubscribe")}}</a>
+        </div>
+        <div class="summaryRow">
+            {%if book.description|length>80%}{{book.description[:80]}}...<span>{{book.description}}</span>{%else%}{{book.description}}{%endif%}
+        </div>
     </div>
-    {% do hasitem2.append(1) %}
-    {% endif %}
-    {% endfor %}
-    {% if not hasitem2 %}
-    <p style="font-size:0.8em;color:grey;">暂时没有未订阅的书籍</p>
-    {% endif %}
+    {% endif -%}
+    {% endfor -%}
 </fieldset>
-{% endblock %}
+<fieldset id="books" style="margin-top:10px;">
+    <legend>{{_("Unsubscribed")}}</legend>
+    {% for book in books -%}
+    {% if nickname not in book.users -%}
+    <div class="book">
+        <div class="titleRow">{{book.title}}
+            <input type="checkbox" id="separate_{{book.key().id()}}" style="margin-left:1em;" />
+            <img alt="{{_("Separate")}}" src="static/separate.gif" border="0" onclick="toggleSeparate('{{book.key().id()}}');" />
+        </div>
+        <div class="cornerControls">
+            <!--<a href="/subscribe/{{book.key().id()}}" class="actionButton">{{_("Subscribe")}}</a>-->
+            <a href="javascript:void(0)" onclick="doSubscribe('{{book.key().id()}}')" class="actionButton">{{_("Subscribe")}}</a>
+        </div>
+        <div class="summaryRow">
+            {%if book.description|length>80%}{{book.description[:80]}}...<span>{{book.description}}</span>{%else%}{{book.description}}{%endif%}
+        </div>
+    </div>
+    {% endif -%}
+    {% endfor -%}
+</fieldset>
+{% endblock -%}
+{% block js -%}
+<script type="text/javascript">
+function toggleFulltext() {
+  var btnft = document.getElementById("fulltext");
+  btnft.checked = !btnft.checked;
+}
+function toggleSeparate(id) {
+  id = "separate_" + id
+  var btnft = document.getElementById(id);
+  btnft.checked = !btnft.checked;
+}
+
+function doSubscribe(id) {
+  var btnSeparate = document.getElementById("separate_" + id);
+  target = "/subscribe/" + id
+  if (btnSeparate.checked)
+    target += "?separate=true"
+  window.location.href = target
+}
+</script>
+{% endblock -%}

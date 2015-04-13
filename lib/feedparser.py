@@ -264,26 +264,26 @@ else:
 
 # iconv_codec provides support for more character encodings.
 # It's available from http://cjkpython.i18n.org/
-try:
-    import iconv_codec
-except ImportError:
-    pass
+#try:
+#    import iconv_codec
+#except ImportError:
+#    pass
 
 # chardet library auto-detects character encodings
 # Download from http://chardet.feedparser.org/
-try:
-    import chardet
-except ImportError:
-    chardet = None
+#try:
+#    import chardet
+#except ImportError:
+chardet = None
 
 # BeautifulSoup is used to extract microformat content from HTML
 # feedparser is tested using BeautifulSoup 3.2.0
 # http://www.crummy.com/software/BeautifulSoup/
-try:
-    import BeautifulSoup
-except ImportError:
-    BeautifulSoup = None
-    PARSE_MICROFORMATS = False
+#try:
+#    import BeautifulSoup
+#except ImportError:
+BeautifulSoup = None
+PARSE_MICROFORMATS = False
 
 # ---------- don't touch these ----------
 class ThingsNobodyCaresAboutButMe(Exception): pass
@@ -3448,7 +3448,7 @@ registerDateHandler(_parse_date_w3dtf)
 # Define the strings used by the RFC822 datetime parser
 _rfc822_months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
           'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
-_rfc822_daynames = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+_rfc822_daynames = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun', 'wes']
 
 # Only the first three letters of the month name matter
 _rfc822_month = "(?P<month>%s)(?:[a-z]*,?)" % ('|'.join(_rfc822_months))

@@ -76,13 +76,23 @@ def clean(text):
 def text_length(i):
     return len(clean(i.text_content() or ""))
 
+regexp_type = type(re.compile('hello, world'))
+
+def compile_pattern(elements):
+    if not elements:
+        return None
+    if isinstance(elements, regexp_type):
+        return elements
+    if isinstance(elements, basestring):
+        elements = elements.split(',')
+    return re.compile(u'|'.join([re.escape(x.lower()) for x in elements]), re.I) #rexdf It seem not working, If we use re.U
 
 class Document:
     """Class to build a etree document out of html."""
     TEXT_LENGTH_THRESHOLD = 25
     RETRY_LENGTH = 250
 
-    def __init__(self, input, **options):
+    def __init__(self, input, positive_keywords=None, negative_keywords=None, **options):
         """Generate the document
 
         :param input: string of the html content.
@@ -93,11 +103,16 @@ class Document:
             - min_text_length:
             - retry_length:
             - url: will allow adjusting links to be absolute
-
+            - positive_keywords: the list of positive search patterns in classes and ids, for example: ["news-item", "block"]
+            - negative_keywords: the list of negative search patterns in classes and ids, for example: ["mysidebar", "related", "ads"]
+            Also positive_keywords and negative_keywords could be a regexp.
         """
         self.input = input
         self.options = options
         self.html = None
+        self.encoding = None
+        self.positive_keywords = compile_pattern(positive_keywords)
+        self.negative_keywords = compile_pattern(negative_keywords)
 
     def _html(self, force=False):
         if force or self.html is None:
@@ -105,7 +120,7 @@ class Document:
         return self.html
 
     def _parse(self, input):
-        doc = build_doc(input)
+        doc, self.encoding = build_doc(input)
         doc = html_cleaner.clean_html(doc)
         base_href = self.options.get('url', None)
         if base_href:
@@ -122,6 +137,9 @@ class Document:
 
     def short_title(self):
         return shorten_title(self._html(True))
+
+    def get_clean_html(self):
+         return clean_attributes(tounicode(self.html))
 
     def summary(self, html_partial=False):
         """Generate the summary of the html docuemnt
@@ -256,7 +274,7 @@ class Document:
             self.TEXT_LENGTH_THRESHOLD)
         candidates = {}
         ordered = []
-        for elem in self.tags(self._html(), "p", "pre", "td"):
+        for elem in self.tags(self._html(), "p", "pre", "td", "figcaption"): #rexdf Add HTML5 Image Support!
             parent_node = elem.getparent()
             if parent_node is None:
                 continue
@@ -308,19 +326,25 @@ class Document:
 
     def class_weight(self, e):
         weight = 0
-        if e.get('class', None):
-            if REGEXES['negativeRe'].search(e.get('class')):
-                weight -= 25
+        for feature in [e.get('class', None), e.get('id', None)]:
+            if feature:
+                if REGEXES['negativeRe'].search(feature):
+                    weight -= 25
 
-            if REGEXES['positiveRe'].search(e.get('class')):
-                weight += 25
+                if REGEXES['positiveRe'].search(feature):
+                    weight += 25
 
-        if e.get('id', None):
-            if REGEXES['negativeRe'].search(e.get('id')):
-                weight -= 25
+                if self.positive_keywords and self.positive_keywords.search(feature):
+                    weight += 150 #rexdf More weight for postive keyword
 
-            if REGEXES['positiveRe'].search(e.get('id')):
-                weight += 25
+                if self.negative_keywords and self.negative_keywords.search(feature):
+                    weight -= 25
+
+        if self.positive_keywords and self.positive_keywords.match('tag-'+e.tag):
+            weight += 25
+
+        if self.negative_keywords and self.negative_keywords.match('tag-'+e.tag):
+            weight -= 25
 
         return weight
 
@@ -329,6 +353,8 @@ class Document:
         name = elem.tag.lower()
         if name == "div":
             content_score += 5
+        elif name in ["figure"]: #rexdf figure in HTML5 is mostly in section article && post should have more wight, Or we'll miss it!
+            content_score += 50
         elif name in ["pre", "td", "blockquote"]:
             content_score += 3
         elif name in ["address", "ol", "ul", "dl", "dd", "dt", "li", "form"]:
@@ -367,6 +393,11 @@ class Document:
                 #self.debug("Altering %s to p" % (describe(elem)))
                 elem.tag = "p"
                 #print "Fixed element "+describe(elem)
+            parent_node = elem.getparent() #rexdf HTML5 <figure> including a <div> and `an <img> & a <figcaption>`  buried in this <div>
+            if parent_node is None:
+                continue
+            if 'figure' == parent_node.tag.lower():
+                elem.tag = "p"
 
         for elem in self.tags(self.html, 'div'):
             if elem.text and elem.text.strip():
@@ -428,6 +459,7 @@ class Document:
                 for kind in ['p', 'img', 'li', 'a', 'embed', 'input']:
                     counts[kind] = len(el.findall('.//%s' % kind))
                 counts["li"] -= 100
+                counts["input"] -= len(el.findall('.//input[@type="hidden"]'))
 
                 # Count the text length excluding any surrounding whitespace
                 content_length = text_length(el)
@@ -530,7 +562,8 @@ class Document:
                 #el.attrib = {} #FIXME:Checkout the effects of disabling this
                 pass
 
-        return clean_attributes(tounicode(node))
+        self.html = node
+        return self.get_clean_html()
 
 
 class HashableElement():
@@ -565,6 +598,8 @@ def main():
     parser = OptionParser(usage="%prog: [options] [file]")
     parser.add_option('-v', '--verbose', action='store_true')
     parser.add_option('-u', '--url', default=None, help="use URL instead of a local file")
+    parser.add_option('-p', '--positive-keywords', default=None, help="positive keywords (separated with comma)", action='store')
+    parser.add_option('-n', '--negative-keywords', default=None, help="negative keywords (separated with comma)", action='store')
     (options, args) = parser.parse_args()
 
     if not (len(args) == 1 or options.url):
@@ -577,11 +612,14 @@ def main():
         file = urllib.urlopen(options.url)
     else:
         file = open(args[0], 'rt')
-    enc = sys.__stdout__.encoding or 'utf-8'
+    enc = sys.__stdout__.encoding or 'utf-8' # XXX: this hack could not always work, better to set PYTHONIOENCODING
     try:
         print Document(file.read(),
             debug=options.verbose,
-            url=options.url).summary().encode(enc, 'replace')
+            url=options.url,
+            positive_keywords = options.positive_keywords,
+            negative_keywords = options.negative_keywords,
+        ).summary().encode(enc, 'replace')
     finally:
         file.close()
 

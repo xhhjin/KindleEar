@@ -1,6 +1,8 @@
-CorreioWeb.py
-CorreioWeb.pyc
+*.pyc
+.DS_Store
+Correio.py
 oGlobo.py
-oGlobo.pyc
 mh_correio.gif
 mh_globo.gif
+cv_correio.jpg
+cv_globo.jpg

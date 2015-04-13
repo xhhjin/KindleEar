@@ -1,98 +1,81 @@
 {% extends "base.html" %}
-
-{% block css %}
+{% block css -%}
 <style type="text/css">
 .usrtb {
-background-color:#f0f0f0;
-border:1px dotted black;
 width:100%;
-border-collapse:collapse;
+font-size:0.8em;
 }
-.usrtbhead {
-background-color:#b0b0b0;
-color:white;
-}
-.usrrow .usrh {
-border:1px dotted #c0c0c0;
-}
+.usrtb th{text-align:center;}
 </style>
-{% endblock %}
-
-{% block content %}
-<form id="chpwd" action="" method="POST">
-<fieldset id="fieldset_chpwd">
-    <legend>修改密码</legend>
-    {% if chpwdtips %}
+{% endblock -%}
+{% block content -%}
+<form class="pure-form pure-form-aligned" action="" method="POST">
+<fieldset>
+    <legend>{{_("Change Password")}}</legend>
+    {% if chpwdtips -%}
     <p style="color:red;font-size:0.8em;">{{chpwdtips}}</p>
-    {% endif %}
-    <table id="tb_chpwd" align="center">
-    <tr>
-        <td style="text-align:right;">原密码：</td>
-        <td><input type="password" name="op" id="orgpwd"></td>
-    </tr>
-    <tr>
-        <td style="text-align:right;">新密码：</td>
-        <td><input type="password" name="p1" id="newpwd1"></td>
-    </tr>
-    <tr>
-        <td style="text-align:right;">确认密码：</td>
-        <td><input type="password" name="p2" id="newpwd2"></td>
-    </tr>
-    <tr>
-        <td></td>
-        <td><input type="submit" value="确认修改"></td>
-    </tr>
-    </table>
+    {% endif -%}
+    <div class="pure-control-group">
+        <label for="orgpwd">{{_("Old password")}}</label>
+        <input type="password" name="op" id="orgpwd">
+    </div>
+    <div class="pure-control-group">
+        <label for="newpwd1">{{_("New password")}}</label>
+        <input type="password" name="p1" id="newpwd1">
+    </div>
+    <div class="pure-control-group">
+        <label for="newpwd2">{{_("Confirm password")}}</label>
+        <input type="password" name="p2" id="newpwd2">
+    </div>
+    <div class="pure-controls">
+        <button type="submit" class="pure-button">{{_("Confirm Change")}}</button>
+    </div>
 </fieldset>
 </form>
-
-{% if nickname == 'admin' %}
-<form id="fmac" action="" method="POST">
-<fieldset id="fieldset_ac">
-    <legend>添加用户账号</legend>
-    {% if actips %}
+{% if nickname == 'admin' -%}
+<form class="pure-form pure-form-aligned" action="" method="POST" style="margin-top:10px;">
+<fieldset>
+    <legend>{{_("Add Account")}}</legend>
+    {% if actips -%}
     <p style="color:red;font-size:0.8em;">{{actips}}</p>
-    {% endif %}
-    <table id="addcount" align="center">
-        <tr>
-            <td style="text-align:right;">用户名：</td>
-            <td><input type="text" name="u" id="username"></td>
-        </tr>
-        <tr>
-            <td style="text-align:right;">密码：</td>
-            <td><input type="text" name="up1" id="password"></td>
-        </tr>
-        <tr>
-            <td style="text-align:right;">确认密码：</td>
-            <td><input type="text" name="up2" id="password"></td>
-        </tr>
-        <tr>
-            <td></td>
-            <td><input type="submit" value="确认添加"></td>
-        </tr>
-    </table>
-    <p style="font-size:0.8em;color:grey;">因为GAE免费资源的有限，不建议添加很多用户账户。</p>
+    {% endif -%}
+    <p style="font-size:0.8em;color:grey;">{{_("Note : No supports many accounts for limit of free account of GAE.")}}</p>
+    <div class="pure-control-group">
+        <label for="username">{{_("Username")}}</label>
+        <input type="text" name="u" id="username" />
+    </div>
+    <div class="pure-control-group">
+        <label for="password1">{{_("Password")}}</label>
+        <input type="text" name="up1" id="password1">
+    </div>
+    <div class="pure-control-group">
+        <label for="password2">{{_("Confirm password")}}</label>
+        <input type="text" name="up2" id="password2">
+    </div>
+    <div class="pure-controls">
+        <button type="submit" class="pure-button">{{_("Add")}}</button>
+    </div>
 </fieldset>
 </form>
-
-<fieldset id="fieldset_cm">
-    <legend>用户账号列表</legend>
-    <table id="tb_cm" class="usrtb">
-        <tr class="usrtbhead">
-        <th class="usrh">序号</th><th class="usrh">用户名</th>
-        <th class="usrh">使能发送</th>
-        <th class="usrh" colspan="2">命令</th>
-        </tr>
-        {% for u in users %}
-        <tr class="usrrow">
-        <th class="usrh">{{loop.index}}</th><th class="usrh">{{u.name}}</th>
-        <th class="usrh">{{u.enable_send}}</th>
-        <th class="usrh"><a href="/mgrpwd?u={{u.name}}" class="actionButton">修改密码</a></th>
-        <th class="usrh"><a href="delaccount?u={{u.name}}" class="actionButton">删除账户</a></th>
-        </tr>
-        {% endfor %}
-    </table>
-</fieldset>
-{% endif %}
-
-{% endblock %}
+<p>{{_("Accounts")}}</p>
+<table class="pure-table pure-table-bordered usrtb">
+    <thead><tr>
+        <th>{{_("No.")}}</th>
+        <th>{{_("Username")}}</th>
+        <th>{{_("Enable")}}</th>
+        <th colspan="2">{{_("Operation")}}</th>
+    </tr></thead>
+    <tbody>
+    {% for u in users -%}
+    <tr>
+    <th>{{loop.index}}</th>
+    <th>{{u.name}}</th>
+    <th>{{u.enable_send}}</th>
+    <th><a href="/mgrpwd/{{u.name}}" class="actionButton">{{_("Change")}}</a></th>
+    <th><a href="delaccount/{{u.name}}" class="actionButton">{{_("Delete")}}</a></th>
+    </tr>
+    {% endfor -%}
+    </tbody>
+</table>
+{% endif -%}
+{% endblock -%}
